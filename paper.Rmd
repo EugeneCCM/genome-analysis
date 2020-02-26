@@ -1,0 +1,13 @@
+---
+title: "PAPER"
+author: "Eugene Cheong"
+date: "2/26/2020"
+output: html_document
+bibliography: data/references.bib
+---
+
+Application written in R [@RCoreTeam] using the Shiny framework [@Chang2015].
+
+
+# REFERENCES
+

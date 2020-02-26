@@ -3,11 +3,18 @@ title: "Index"
 author: "Eugene Cheong"
 date: "2/26/2020"
 output: html_document
+bibliography: data/references.bib
 ---
+Application written in R [@RCoreTeam] using the Shiny framework [@Chang2015].
 
 This is my new web site :^) Im a programmer now. 
 
 [Lab 2](lab2_eccm.html)
+
 [Lab 3](lab3_eccm.html)
+
 [Lab 4](lab4_eccm.html)
+
 [Lab 5](lab5_eccm.html)
+
+# REFERENCES
