@@ -7,4 +7,7 @@ output: html_document
 
 This is my new web site :^) Im a programmer now. 
 
-[Lab5](lab5_eccm.html)
+[Lab 2](lab2_eccm.html)
+[Lab 3](lab3_eccm.html)
+[Lab 4](lab4_eccm.html)
+[Lab 5](lab5_eccm.html)
