@@ -1,0 +1,10 @@
+---
+title: "Index"
+author: "Eugene Cheong"
+date: "2/26/2020"
+output: html_document
+---
+
+This is my new web site :^) Im a programmer now. 
+
+[Lab5](lab5_eccm.html)
