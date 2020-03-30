@@ -1,0 +1,20 @@
+---
+title: "Genealogical Tree Lab"
+author: "Eugene Cheong"
+date: "3/24/2020"
+output: html_document
+---
+
+```{r message=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(plotly)
+library(DT)
+```
+
+### My Family Tree 
+
+![Family Tree](FamilyTree.png)
+
+
+
