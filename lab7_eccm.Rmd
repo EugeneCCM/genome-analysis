@@ -1,0 +1,217 @@
+---
+title: "lab7_eccm"
+author: "Eugene Cheong"
+date: "3/9/2020"
+output: html_document
+---
+
+```{r message=FALSE}
+library("tidyverse")
+library("BiocStyle")
+library("knitr")
+library("rmarkdown")
+library("airway")
+library("tximeta")
+library("DESeq2")
+library("magrittr")
+library("vsn")
+library("pheatmap")
+library("RColorBrewer")
+library("PoiClaClu")
+library("glmpca")
+library("dplyr")
+library("ggplot2")
+
+```
+
+
+## 2.3 Reading Data with tximeta
+```{r}
+dir <- system.file("extdata", package="airway", mustWork=TRUE)
+list.files(dir)
+list.files(file.path(dir, "quants"))
+csvfile <- file.path(dir, "sample_table.csv")
+coldata <- read.csv(csvfile, row.names=1, stringsAsFactors=FALSE)
+coldata
+
+coldata <- coldata[1:2,]
+coldata$names <- coldata$Run
+coldata$files <- file.path(dir, "quants", coldata$names, "quant.sf.gz")
+file.exists(coldata$files)
+
+se <- tximeta(coldata)
+
+dim
+
+head(rownames(se))
+
+gse <- summarizeToGene(se)
+
+dim(gse)
+
+head(rownames(gse))
+```
+
+## 2.5 Summarized Experiment
+```{r}
+data(gse)
+gse
+
+assayNames(gse)
+head(assay(gse), 3)
+
+colSums(assay(gse))
+
+rowRanges(gse)
+
+seqinfo(rowRanges(gse))
+colData(gse)
+```
+
+## 3 The DESeqDataSet object, sample information and the design formula
+```{r}
+gse$donor
+
+gse$condition
+
+gse$cell <- gse$donor
+gse$dex <- gse$condition
+
+levels(gse$dex)
+
+levels(gse$dex) <- c("untrt", "trt")
+
+gse$dex %<>% relevel("untrt")
+gse$dex
+
+gse$dex <- relevel(gse$dex, "untrt")
+```
+
+## 3.1 Starting from Summarized Experiment
+```{r}
+round( colSums(assay(gse)) / 1e6, 1 )
+
+dds <- DESeqDataSet(gse, design = ~ cell + dex)
+
+
+coldata <- colData(gse)
+
+```
+
+## 3.2 Starting from Count Matrices 
+```{r}
+countdata <- round(assays(gse)[["counts"]])
+head(countdata, 3)
+
+ddsMat <- DESeqDataSetFromMatrix(countData = countdata,
+                                 colData = coldata,
+                                 design = ~ cell + dex)
+```
+
+## 4.1 Pre-filtering the dataset
+```{r}
+nrow(dds)
+
+keep <- rowSums(counts(dds)) > 1
+dds <- dds[keep,]
+nrow(dds)
+
+keep <- rowSums(counts(dds) >= 10) >= 3
+```
+
+## 4.2 The variance stabilizing transformation and the rlog
+```{r}
+lambda <- 10^seq(from = -1, to = 2, length = 1000)
+cts <- matrix(rpois(1000*100, lambda), ncol = 100)
+meanSdPlot(cts, ranks = FALSE)
+
+log.cts.one <- log2(cts + 1)
+meanSdPlot(log.cts.one, ranks = FALSE)
+
+vsd <- vst(dds, blind = FALSE)
+head(assay(vsd), 3)
+
+colData(vsd)
+
+rld <- rlog(dds, blind = FALSE)
+head(assay(rld), 3)
+
+dds <- estimateSizeFactors(dds)
+
+df <- bind_rows(
+  as_data_frame(log2(counts(dds, normalized=TRUE)[, 1:2]+1)) %>%
+         mutate(transformation = "log2(x + 1)"),
+  as_data_frame(assay(vsd)[, 1:2]) %>% mutate(transformation = "vst"),
+  as_data_frame(assay(rld)[, 1:2]) %>% mutate(transformation = "rlog"))
+  
+colnames(df)[1:2] <- c("x", "y")  
+
+ggplot(df, aes(x = x, y = y)) + geom_hex(bins = 80) +
+  coord_fixed() + facet_grid( . ~ transformation)  
+```
+
+## 4.3 Sample Distances 
+```{r}
+sampleDists <- dist(t(assay(vsd)))
+sampleDists
+
+sampleDistMatrix <- as.matrix( sampleDists )
+rownames(sampleDistMatrix) <- paste( vsd$dex, vsd$cell, sep = " - " )
+colnames(sampleDistMatrix) <- NULL
+colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+pheatmap(sampleDistMatrix,
+         clustering_distance_rows = sampleDists,
+         clustering_distance_cols = sampleDists,
+         col = colors)
+
+poisd <- PoissonDistance(t(counts(dds)))
+
+samplePoisDistMatrix <- as.matrix( poisd$dd )
+rownames(samplePoisDistMatrix) <- paste( dds$dex, dds$cell, sep=" - " )
+colnames(samplePoisDistMatrix) <- NULL
+pheatmap(samplePoisDistMatrix,
+         clustering_distance_rows = poisd$dd,
+         clustering_distance_cols = poisd$dd,
+         col = colors)
+```
+
+## 4.4 PCA Plot 
+```{r}
+plotPCA(vsd, intgroup = c("dex", "cell"))
+
+pcaData <- plotPCA(vsd, intgroup = c( "dex", "cell"), returnData = TRUE)
+pcaData
+
+percentVar <- round(100 * attr(pcaData, "percentVar"))
+
+ggplot(pcaData, aes(x = PC1, y = PC2, color = dex, shape = cell)) +
+  geom_point(size =3) +
+  xlab(paste0("PC1: ", percentVar[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar[2], "% variance")) +
+  coord_fixed() +
+  ggtitle("PCA with VST data")
+```
+
+## 4.5 PCA plot ising Generalized PCA 
+```{r}
+gpca <- glmpca(counts(dds), L=2)
+gpca.dat <- gpca$factors
+gpca.dat$dex <- dds$dex
+gpca.dat$cell <- dds$cell
+
+ggplot(gpca.dat, aes(x = dim1, y = dim2, color = dex, shape = cell)) +
+  geom_point(size =3) + coord_fixed() + ggtitle("glmpca - Generalized PCA")
+```
+
+## MDS Plot 
+```{r}
+mds <- as.data.frame(colData(vsd))  %>%
+         cbind(cmdscale(sampleDistMatrix))
+ggplot(mds, aes(x = `1`, y = `2`, color = dex, shape = cell)) +
+  geom_point(size = 3) + coord_fixed() + ggtitle("MDS with VST data")
+
+mdsPois <- as.data.frame(colData(dds)) %>%
+   cbind(cmdscale(samplePoisDistMatrix))
+ggplot(mdsPois, aes(x = `1`, y = `2`, color = dex, shape = cell)) +
+  geom_point(size = 3) + coord_fixed() + ggtitle("MDS with PoissonDistances")
+```
