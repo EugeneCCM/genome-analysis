@@ -1,0 +1,12 @@
+name: MyShinyAppTutorial
+title: MyShinyAppTutorial
+username:
+account: eugeneccm
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2083057
+bundleId: 2988669
+url: https://eugeneccm.shinyapps.io/MyShinyAppTutorial/
+when: 1586377859.34465
+asMultiple: FALSE
+asStatic: FALSE
