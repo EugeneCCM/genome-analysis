@@ -27,4 +27,8 @@ This is my new web site :^) Im a programmer now.
 
 [Lab 9](lab9_eccm.html)
 
+[lab 10](lab10_eccm.html)
+
+[lab 11/12](https://eugeneccm.shinyapps.io/Lab11and12/)
+
 # REFERENCES
